@@ -6,21 +6,23 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
+      width: 520px;
+      height: 580px;
       font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
       font-size: 12px;
       background: #1e1e1e;
       color: #d4d4d4;
-      height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    /* 工具列 */
+    /* ===== 工具列 ===== */
     .toolbar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
+      gap: 6px;
+      padding: 6px 10px;
       background: #2d2d2d;
       border-bottom: 1px solid #404040;
       flex-shrink: 0;
@@ -31,10 +33,11 @@
       color: #d4d4d4;
       border: 1px solid #555;
       border-radius: 4px;
-      padding: 4px 10px;
+      padding: 3px 8px;
       cursor: pointer;
       font-size: 11px;
       font-family: inherit;
+      white-space: nowrap;
     }
 
     .toolbar button:hover { background: #505050; }
@@ -45,47 +48,63 @@
       color: #fff;
     }
 
-    .toolbar .separator { width: 1px; height: 20px; background: #555; }
-
-    .toolbar .count { color: #888; font-size: 11px; margin-left: auto; }
+    .toolbar .separator {
+      width: 1px;
+      height: 18px;
+      background: #555;
+      flex-shrink: 0;
+    }
 
     .filter-input {
       background: #3c3c3c;
       color: #d4d4d4;
       border: 1px solid #555;
       border-radius: 4px;
-      padding: 4px 8px;
+      padding: 3px 6px;
       font-size: 11px;
       font-family: inherit;
-      width: 200px;
+      width: 140px;
       outline: none;
+      flex-shrink: 1;
+      min-width: 80px;
     }
 
     .filter-input:focus { border-color: #0e639c; }
 
-    /* 訊息列表 */
+    .count {
+      color: #888;
+      font-size: 10px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* ===== 訊息列表 ===== */
     .message-list {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
+      min-height: 0;
     }
 
     .message-item {
       display: flex;
+      align-items: center;
       border-bottom: 1px solid #2a2a2a;
       cursor: pointer;
       transition: background 0.1s;
+      height: 28px;
     }
 
     .message-item:hover { background: #2a2d2e; }
     .message-item.selected { background: #04395e; }
 
     .message-item .direction {
-      width: 60px;
-      padding: 6px 8px;
+      width: 50px;
+      padding: 0 6px;
       font-weight: bold;
       flex-shrink: 0;
       text-align: center;
+      font-size: 10px;
     }
 
     .direction.send { color: #f44747; }
@@ -95,21 +114,22 @@
     .direction.error { color: #f44747; }
 
     .message-item .time {
-      width: 85px;
-      padding: 6px 4px;
-      color: #888;
+      width: 75px;
+      padding: 0 4px;
+      color: #666;
       flex-shrink: 0;
+      font-size: 10px;
     }
 
     .message-item .format-badge {
-      width: 44px;
-      padding: 6px 4px;
+      width: 36px;
       flex-shrink: 0;
+      text-align: center;
     }
 
     .format-badge span {
       font-size: 9px;
-      padding: 1px 4px;
+      padding: 1px 3px;
       border-radius: 3px;
       font-weight: bold;
     }
@@ -120,40 +140,44 @@
 
     .message-item .preview {
       flex: 1;
-      padding: 6px 8px;
+      padding: 0 6px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #ccc;
+      color: #aaa;
+      font-size: 11px;
     }
 
-    .message-item .ws-url { color: #569cd6; font-size: 11px; }
+    .message-item .ws-url { color: #569cd6; }
 
-    /* 詳細面板 */
+    /* ===== 詳細面板 ===== */
     .detail-panel {
       border-top: 2px solid #0e639c;
       background: #252526;
       flex-shrink: 0;
-      max-height: 50vh;
+      max-height: 55%;
       display: none;
       flex-direction: column;
     }
 
-    .detail-panel.visible { display: flex; }
+    .detail-panel.visible {
+      display: flex;
+    }
 
     .detail-header {
       display: flex;
       align-items: center;
-      padding: 6px 12px;
+      padding: 4px 10px;
       background: #2d2d2d;
       border-bottom: 1px solid #404040;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
     }
 
     .detail-header .label {
       font-weight: bold;
       color: #569cd6;
+      font-size: 11px;
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -162,7 +186,7 @@
 
     .detail-header .detail-actions {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       flex-shrink: 0;
     }
 
@@ -171,13 +195,17 @@
       border: 1px solid #555;
       color: #ccc;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
       font-family: inherit;
-      padding: 2px 10px;
+      padding: 2px 8px;
       border-radius: 3px;
+      white-space: nowrap;
     }
 
-    .detail-header .detail-actions button:hover { background: #505050; color: #fff; }
+    .detail-header .detail-actions button:hover {
+      background: #505050;
+      color: #fff;
+    }
 
     .detail-header .detail-actions button.copied {
       background: #365b2e;
@@ -185,7 +213,7 @@
       color: #89d185;
     }
 
-    /* Tab */
+    /* ===== Tab 切換 ===== */
     .detail-tabs {
       display: flex;
       background: #2d2d2d;
@@ -201,20 +229,29 @@
       cursor: pointer;
       font-size: 11px;
       font-family: inherit;
-      padding: 5px 16px;
+      padding: 5px 14px;
     }
 
     .detail-tabs button:hover { color: #d4d4d4; }
-    .detail-tabs button.active { color: #fff; border-bottom-color: #0e639c; }
 
-    .detail-body { flex: 1; overflow-y: auto; min-height: 0; }
+    .detail-tabs button.active {
+      color: #fff;
+      border-bottom-color: #0e639c;
+    }
+
+    /* ===== 內容區 ===== */
+    .detail-body {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
 
     .detail-content {
-      padding: 10px 12px;
+      padding: 8px 10px;
       white-space: pre;
       word-break: break-all;
       line-height: 1.6;
-      font-size: 12px;
+      font-size: 11px;
       tab-size: 2;
     }
 
@@ -223,52 +260,72 @@
     .detail-content .json-number { color: #b5cea8; }
     .detail-content .json-boolean { color: #569cd6; }
     .detail-content .json-null { color: #569cd6; }
+
     .detail-content .xml-tag { color: #569cd6; }
     .detail-content .xml-attr-name { color: #9cdcfe; }
     .detail-content .xml-attr-value { color: #ce9178; }
     .detail-content .xml-text { color: #d4d4d4; }
     .detail-content .xml-decl { color: #808080; }
 
-    .meta-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .meta-table td { padding: 5px 12px; border-bottom: 1px solid #333; vertical-align: top; }
-    .meta-table .meta-key { color: #9cdcfe; width: 100px; white-space: nowrap; }
-    .meta-table .meta-value { color: #d4d4d4; word-break: break-all; }
+    /* ===== Meta 資訊 ===== */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
 
-    /* 空狀態 */
+    .meta-table td {
+      padding: 4px 10px;
+      border-bottom: 1px solid #333;
+      vertical-align: top;
+    }
+
+    .meta-table .meta-key {
+      color: #9cdcfe;
+      width: 90px;
+      white-space: nowrap;
+    }
+
+    .meta-table .meta-value {
+      color: #d4d4d4;
+      word-break: break-all;
+    }
+
+    /* ===== 空狀態 ===== */
     .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: #666;
+      color: #555;
     }
 
-    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state .title { font-size: 16px; margin-bottom: 6px; color: #888; }
-    .empty-state .hint { font-size: 12px; }
+    .empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+    .empty-state .title { font-size: 14px; margin-bottom: 4px; color: #777; }
+    .empty-state .hint { font-size: 11px; }
 
-    ::-webkit-scrollbar { width: 8px; }
+    /* ===== 捲軸 ===== */
+    ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #1e1e1e; }
-    ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #424242; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #555; }
   </style>
 </head>
 <body>
+  <!-- 工具列 -->
   <div class="toolbar">
-    <button id="btn-clear" title="清除所有訊息">Clear</button>
+    <button id="btn-clear" title="Clear">Clear</button>
     <div class="separator"></div>
-    <button id="btn-all" class="active" data-filter="ALL">All</button>
-    <button id="btn-send" data-filter="SEND">Send</button>
-    <button id="btn-receive" data-filter="RECEIVE">Receive</button>
+    <button class="active" data-filter="ALL">All</button>
+    <button data-filter="SEND">Send</button>
+    <button data-filter="RECEIVE">Recv</button>
     <div class="separator"></div>
-    <input type="text" class="filter-input" id="search-input" placeholder="Filter (URL / payload)...">
-    <label style="color:#888; font-size:11px; display:flex; align-items:center; gap:4px;">
-      <input type="checkbox" id="auto-scroll" checked> Auto-scroll
-    </label>
-    <span class="count" id="msg-count">0 messages</span>
+    <input type="text" class="filter-input" id="search-input" placeholder="Filter...">
+    <span class="count" id="msg-count">0</span>
   </div>
 
+  <!-- 訊息列表 -->
   <div class="message-list" id="message-list">
     <div class="empty-state" id="empty-state">
       <div class="icon">&#x1F50C;</div>
@@ -277,13 +334,14 @@
     </div>
   </div>
 
+  <!-- 詳細面板 -->
   <div class="detail-panel" id="detail-panel">
     <div class="detail-header">
       <span class="label" id="detail-label">Detail</span>
       <div class="detail-actions">
-        <button id="btn-copy" title="複製格式化內容">Copy</button>
+        <button id="btn-copy" title="複製內容">Copy</button>
         <button id="btn-copy-raw" title="複製原始資料">Raw</button>
-        <button id="btn-close-detail">&times;</button>
+        <button id="btn-close-detail" title="關閉">&times;</button>
       </div>
     </div>
     <div class="detail-tabs" id="detail-tabs">
@@ -296,6 +354,6 @@
     </div>
   </div>
 
-  <script src="panel.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// panel.js - DevTools 面板邏輯（共用於 DevTools panel）
+// popup.js - Popup 面板邏輯
 
 (function () {
   // ========== 資料儲存 ==========
@@ -18,7 +18,6 @@
   const detailContent = document.getElementById('detail-content');
   const msgCount = document.getElementById('msg-count');
   const searchInput = document.getElementById('search-input');
-  const autoScrollCheckbox = document.getElementById('auto-scroll');
 
   // ========== 工具函式 ==========
 
@@ -60,7 +59,7 @@
     return div.innerHTML;
   }
 
-  // ===== JSON =====
+  // ===== JSON 語法高亮 =====
   function highlightJson(obj, indent) {
     indent = indent || 0;
     const sp = '  '.repeat(indent);
@@ -92,7 +91,7 @@
     return escapeHtml(String(obj));
   }
 
-  // ===== XML 語法高亮（遞迴 DOM）=====
+  // ===== XML 語法高亮（遞迴遍歷 DOM）=====
   function highlightXmlNode(node, indent) {
     const sp = '  '.repeat(indent);
     let html = '';
@@ -105,7 +104,9 @@
 
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent.trim();
-      if (text) html += '<span class="xml-text">' + escapeHtml(text) + '</span>';
+      if (text) {
+        html += '<span class="xml-text">' + escapeHtml(text) + '</span>';
+      }
       return html;
     }
 
@@ -120,6 +121,7 @@
     const attrs = node.attributes;
     const children = node.childNodes;
 
+    // 開標籤
     html += sp + '&lt;<span class="xml-tag">' + escapeHtml(tagName) + '</span>';
 
     for (let i = 0; i < attrs.length; i++) {
@@ -127,11 +129,13 @@
         '=<span class="xml-attr-value">"' + escapeHtml(attrs[i].value) + '"</span>';
     }
 
+    // 無子元素
     if (children.length === 0) {
       html += '/&gt;\n';
       return html;
     }
 
+    // 只有一個文字子節點 → 單行顯示
     if (children.length === 1 && children[0].nodeType === Node.TEXT_NODE) {
       const text = children[0].textContent.trim();
       html += '&gt;<span class="xml-text">' + escapeHtml(text) + '</span>';
@@ -139,6 +143,7 @@
       return html;
     }
 
+    // 多個子元素
     html += '&gt;\n';
     for (let i = 0; i < children.length; i++) {
       html += highlightXmlNode(children[i], indent + 1);
@@ -150,16 +155,31 @@
 
   function highlightXmlDoc(doc) {
     let html = '';
+    // 如果有 xml declaration（DOMParser 不保留，手動檢查 raw）
     for (let i = 0; i < doc.childNodes.length; i++) {
       html += highlightXmlNode(doc.childNodes[i], 0);
     }
     return html.trimEnd();
   }
 
-  // ===== 複製 =====
+  // ========== 複製功能 ==========
+
+  function getFormattedText(msg, parsed) {
+    if (!msg.payload) return '';
+    if (parsed.format === 'JSON') {
+      return JSON.stringify(parsed.parsed, null, 2);
+    }
+    if (parsed.format === 'XML') {
+      // 用 formatted raw
+      return formatXmlRaw(parsed.raw);
+    }
+    return parsed.raw;
+  }
+
   function formatXmlRaw(xml) {
     let formatted = '';
     let indentLevel = 0;
+    // 先把 >< 之間加換行
     const parts = xml.replace(/(>)\s*(<)/g, '$1\n$2').split('\n');
     parts.forEach(function (line) {
       const trimmed = line.trim();
@@ -168,17 +188,13 @@
       formatted += '  '.repeat(Math.max(0, indentLevel)) + trimmed + '\n';
       if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.startsWith('<?') &&
           !trimmed.endsWith('/>') && trimmed.endsWith('>')) {
-        if (!/<\/\w/.test(trimmed)) indentLevel++;
+        // 檢查是不是自閉合或單行含文字
+        if (!/<\/\w/.test(trimmed)) {
+          indentLevel++;
+        }
       }
     });
     return formatted.trimEnd();
-  }
-
-  function getFormattedText(msg, parsed) {
-    if (!msg.payload) return '';
-    if (parsed.format === 'JSON') return JSON.stringify(parsed.parsed, null, 2);
-    if (parsed.format === 'XML') return formatXmlRaw(parsed.raw);
-    return parsed.raw;
   }
 
   function copyToClipboard(text, btn) {
@@ -261,7 +277,7 @@
     });
 
     emptyState.style.display = count === 0 ? 'flex' : 'none';
-    msgCount.textContent = count + ' / ' + messages.length + ' messages';
+    msgCount.textContent = count + ' / ' + messages.length;
   }
 
   function addMessage(msg) {
@@ -270,13 +286,11 @@
 
     if (shouldShow(msg)) {
       messageList.appendChild(createMessageElement(msg, messages.length - 1));
-      if (autoScrollCheckbox && autoScrollCheckbox.checked) {
-        messageList.scrollTop = messageList.scrollHeight;
-      }
+      messageList.scrollTop = messageList.scrollHeight;
     }
 
     const count = messageList.querySelectorAll('.message-item').length;
-    msgCount.textContent = count + ' / ' + messages.length + ' messages';
+    msgCount.textContent = count + ' / ' + messages.length;
   }
 
   // ========== 詳細面板 ==========
@@ -337,6 +351,7 @@
       el.classList.toggle('selected', parseInt(el.dataset.index) === index);
     });
 
+    // 更新 tab active
     document.querySelectorAll('#detail-tabs button').forEach(function (b) {
       b.classList.toggle('active', b.dataset.tab === 'formatted');
     });
@@ -351,6 +366,7 @@
 
   // ========== 事件綁定 ==========
 
+  // Clear
   document.getElementById('btn-clear').addEventListener('click', function () {
     messages.length = 0;
     selectedIndex = -1;
@@ -360,6 +376,7 @@
     renderMessages();
   });
 
+  // Filter buttons
   document.querySelectorAll('[data-filter]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('[data-filter]').forEach(function (b) { b.classList.remove('active'); });
@@ -369,11 +386,13 @@
     });
   });
 
+  // Search
   searchInput.addEventListener('input', function () {
     searchText = this.value;
     renderMessages();
   });
 
+  // Detail tabs
   document.querySelectorAll('#detail-tabs button').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('#detail-tabs button').forEach(function (b) { b.classList.remove('active'); });
@@ -383,17 +402,20 @@
     });
   });
 
+  // Copy formatted
   document.getElementById('btn-copy').addEventListener('click', function () {
     if (!currentMsg) return;
     const text = currentParsed ? getFormattedText(currentMsg, currentParsed) : '';
     copyToClipboard(text, this);
   });
 
+  // Copy raw
   document.getElementById('btn-copy-raw').addEventListener('click', function () {
     if (!currentMsg || !currentMsg.payload) return;
     copyToClipboard(currentMsg.payload, this);
   });
 
+  // Close detail
   document.getElementById('btn-close-detail').addEventListener('click', function () {
     detailPanel.classList.remove('visible');
     selectedIndex = -1;
@@ -403,14 +425,15 @@
 
   // ========== 建立連線 ==========
 
-  const port = chrome.runtime.connect({ name: 'devtools-page' });
-  port.postMessage({
-    name: 'init',
-    tabId: chrome.devtools.inspectedWindow.tabId
-  });
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (!tabs[0]) return;
+    const tabId = tabs[0].id;
 
-  port.onMessage.addListener(function (message) {
-    addMessage(message);
-  });
+    const port = chrome.runtime.connect({ name: 'popup' });
+    port.postMessage({ name: 'init', tabId: tabId });
 
+    port.onMessage.addListener(function (message) {
+      addMessage(message);
+    });
+  });
 })();
