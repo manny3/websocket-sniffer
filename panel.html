@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 工具列 */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #2d2d2d;
+      border-bottom: 1px solid #404040;
+      flex-shrink: 0;
+    }
+
+    .toolbar button {
+      background: #3c3c3c;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .toolbar button:hover {
+      background: #505050;
+    }
+
+    .toolbar button.active {
+      background: #0e639c;
+      border-color: #1177bb;
+      color: #fff;
+    }
+
+    .toolbar .separator {
+      width: 1px;
+      height: 20px;
+      background: #555;
+    }
+
+    .toolbar .count {
+      color: #888;
+      font-size: 11px;
+      margin-left: auto;
+    }
+
+    .filter-input {
+      background: #3c3c3c;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: inherit;
+      width: 200px;
+      outline: none;
+    }
+
+    .filter-input:focus {
+      border-color: #0e639c;
+    }
+
+    /* 訊息列表 */
+    .message-list {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .message-item {
+      display: flex;
+      border-bottom: 1px solid #2a2a2a;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .message-item:hover {
+      background: #2a2d2e;
+    }
+
+    .message-item.selected {
+      background: #04395e;
+    }
+
+    .message-item .direction {
+      width: 60px;
+      padding: 6px 8px;
+      font-weight: bold;
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    .message-item .direction.send {
+      color: #f44747;
+    }
+
+    .message-item .direction.receive {
+      color: #6a9955;
+    }
+
+    .message-item .direction.connect {
+      color: #569cd6;
+    }
+
+    .message-item .direction.close {
+      color: #ce9178;
+    }
+
+    .message-item .direction.error {
+      color: #f44747;
+      background: rgba(244, 71, 71, 0.1);
+    }
+
+    .message-item .time {
+      width: 85px;
+      padding: 6px 4px;
+      color: #888;
+      flex-shrink: 0;
+    }
+
+    .message-item .format-badge {
+      width: 44px;
+      padding: 6px 4px;
+      flex-shrink: 0;
+    }
+
+    .message-item .format-badge span {
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    .badge-json {
+      background: #365b2e;
+      color: #89d185;
+    }
+
+    .badge-xml {
+      background: #4b3621;
+      color: #ce9178;
+    }
+
+    .badge-text {
+      background: #3c3c3c;
+      color: #888;
+    }
+
+    .message-item .preview {
+      flex: 1;
+      padding: 6px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #ccc;
+    }
+
+    .message-item .ws-url {
+      color: #569cd6;
+      font-size: 11px;
+    }
+
+    /* 詳細面板 */
+    .detail-panel {
+      border-top: 2px solid #0e639c;
+      background: #252526;
+      flex-shrink: 0;
+      max-height: 50vh;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .detail-panel.visible {
+      display: block;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      background: #2d2d2d;
+      border-bottom: 1px solid #404040;
+    }
+
+    .detail-header .label {
+      font-weight: bold;
+      color: #569cd6;
+    }
+
+    .detail-header button {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+    }
+
+    .detail-header button:hover {
+      color: #d4d4d4;
+    }
+
+    .detail-content {
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.5;
+      font-size: 12px;
+    }
+
+    .detail-content .json-key {
+      color: #9cdcfe;
+    }
+
+    .detail-content .json-string {
+      color: #ce9178;
+    }
+
+    .detail-content .json-number {
+      color: #b5cea8;
+    }
+
+    .detail-content .json-boolean {
+      color: #569cd6;
+    }
+
+    .detail-content .json-null {
+      color: #569cd6;
+    }
+
+    .detail-content .xml-tag {
+      color: #569cd6;
+    }
+
+    .detail-content .xml-attr {
+      color: #9cdcfe;
+    }
+
+    .detail-content .xml-value {
+      color: #ce9178;
+    }
+
+    /* 空狀態 */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #666;
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state .title {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #888;
+    }
+
+    .empty-state .hint {
+      font-size: 12px;
+    }
+
+    /* 捲軸樣式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #424242;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- 工具列 -->
+  <div class="toolbar">
+    <button id="btn-clear" title="清除所有訊息">Clear</button>
+    <div class="separator"></div>
+    <button id="btn-all" class="active" data-filter="ALL">All</button>
+    <button id="btn-send" data-filter="SEND">Send</button>
+    <button id="btn-receive" data-filter="RECEIVE">Receive</button>
+    <div class="separator"></div>
+    <input type="text" class="filter-input" id="search-input" placeholder="Filter (URL / payload)...">
+    <label style="color:#888; font-size:11px; display:flex; align-items:center; gap:4px;">
+      <input type="checkbox" id="auto-scroll" checked> Auto-scroll
+    </label>
+    <span class="count" id="msg-count">0 messages</span>
+  </div>
+
+  <!-- 訊息列表 -->
+  <div class="message-list" id="message-list">
+    <div class="empty-state" id="empty-state">
+      <div class="icon">&#x1F50C;</div>
+      <div class="title">WebSocket Sniffer</div>
+      <div class="hint">等待 WebSocket 連線...</div>
+    </div>
+  </div>
+
+  <!-- 詳細面板 -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-header">
+      <span class="label" id="detail-label">Detail</span>
+      <button id="btn-close-detail">&times;</button>
+    </div>
+    <div class="detail-content" id="detail-content"></div>
+  </div>
+
+  <script src="panel.js"></script>
+</body>
+</html>

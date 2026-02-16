@@ -1,0 +1,7 @@
+{
+  "name": "ws-sniffer-test",
+  "private": true,
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

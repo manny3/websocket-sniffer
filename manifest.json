@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "WebSocket Sniffer",
+  "version": "1.0",
+  "description": "監聽網頁上的 WebSocket 收發資料 (支援 JSON/XML 解析)",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "devtools_page": "devtools.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

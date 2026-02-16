@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Sniffer 測試頁面</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 40px;
+      color: #333;
+    }
+    h1 { margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 24px; }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card h2 { font-size: 16px; margin-bottom: 12px; }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status.connected { background: #e8f5e9; color: #2e7d32; }
+    .status.disconnected { background: #ffebee; color: #c62828; }
+    .status.connecting { background: #fff3e0; color: #e65100; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-connect { background: #4caf50; color: #fff; }
+    .btn-disconnect { background: #f44336; color: #fff; }
+    .btn-send { background: #2196f3; color: #fff; }
+    .btn-send-xml { background: #ff9800; color: #fff; }
+    .btn-send-text { background: #9c27b0; color: #fff; }
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: 'Menlo', monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .log .send { color: #f44747; }
+    .log .recv { color: #6a9955; }
+    .log .info { color: #569cd6; }
+    .log .error { color: #f44747; font-weight: bold; }
+    .instructions {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      line-height: 1.8;
+    }
+    .instructions code {
+      background: #bbdefb;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>WebSocket Sniffer - 測試頁面</h1>
+  <p class="subtitle">用這個頁面來驗證擴充功能是否正確攔截 WebSocket 資料</p>
+
+  <div class="instructions">
+    <strong>測試步驟：</strong><br>
+    1. 先到 <code>chrome://extensions/</code> 載入 <code>websocket-sniffer</code> 資料夾<br>
+    2. 回到此頁面，按 <code>F12</code> 開啟開發者工具<br>
+    3. 找到 <strong>「WebSocket Sniffer」</strong> 分頁<br>
+    4. 點下方的「連線」按鈕，觀察面板是否有攔截到資料
+  </div>
+
+  <!-- 連線控制 -->
+  <div class="card">
+    <h2>連線控制</h2>
+    <span class="status disconnected" id="status">未連線</span>
+    <div class="btn-group">
+      <button class="btn-connect" id="btn-connect" onclick="doConnect()">連線</button>
+      <button class="btn-disconnect" id="btn-disconnect" onclick="doDisconnect()" disabled>斷線</button>
+    </div>
+  </div>
+
+  <!-- 發送資料 -->
+  <div class="card">
+    <h2>發送測試資料</h2>
+    <div class="btn-group">
+      <button class="btn-send" id="btn-json" onclick="sendJson()" disabled>
+        發送 JSON
+      </button>
+      <button class="btn-send-xml" id="btn-xml" onclick="sendXml()" disabled>
+        發送 XML
+      </button>
+      <button class="btn-send-text" id="btn-text" onclick="sendText()" disabled>
+        發送純文字
+      </button>
+    </div>
+  </div>
+
+  <!-- 日誌 -->
+  <div class="card">
+    <h2>頁面日誌</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+<script>
+  let ws = null;
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+
+  function log(type, text) {
+    const line = document.createElement('div');
+    line.className = type;
+    const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    line.textContent = `[${time}] ${text}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function updateButtons(connected) {
+    document.getElementById('btn-connect').disabled = connected;
+    document.getElementById('btn-disconnect').disabled = !connected;
+    document.getElementById('btn-json').disabled = !connected;
+    document.getElementById('btn-xml').disabled = !connected;
+    document.getElementById('btn-text').disabled = !connected;
+  }
+
+  function doConnect() {
+    statusEl.textContent = '連線中...';
+    statusEl.className = 'status connecting';
+    log('info', '正在連線到 ws://localhost:3210 ...');
+
+    ws = new WebSocket('ws://localhost:3210');
+
+    ws.onopen = () => {
+      statusEl.textContent = '已連線';
+      statusEl.className = 'status connected';
+      updateButtons(true);
+      log('info', '✓ WebSocket 已連線');
+    };
+
+    ws.onmessage = (event) => {
+      log('recv', '← 收到: ' + event.data);
+    };
+
+    ws.onclose = (event) => {
+      statusEl.textContent = '未連線';
+      statusEl.className = 'status disconnected';
+      updateButtons(false);
+      log('info', `✕ 連線已關閉 (code=${event.code})`);
+      ws = null;
+    };
+
+    ws.onerror = () => {
+      log('error', '✕ 連線錯誤！請確認 server.js 是否正在執行');
+    };
+  }
+
+  function doDisconnect() {
+    if (ws) {
+      ws.close();
+      log('info', '手動斷線');
+    }
+  }
+
+  function sendJson() {
+    const data = {
+      action: 'subscribe',
+      channel: 'stock',
+      symbols: ['AAPL', 'GOOG', 'TSLA'],
+      options: { interval: '1m', depth: 5 }
+    };
+    ws.send(JSON.stringify(data));
+    log('send', '→ 發送 JSON: ' + JSON.stringify(data));
+  }
+
+  function sendXml() {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<request>
+  <action>query</action>
+  <params>
+    <symbol>AAPL</symbol>
+    <from>2024-01-01</from>
+    <to>2024-12-31</to>
+  </params>
+</request>`;
+    ws.send(xml);
+    log('send', '→ 發送 XML: ' + xml.replace(/\n/g, ' ').substring(0, 80) + '...');
+  }
+
+  function sendText() {
+    const text = 'Hello WebSocket! 這是一段純文字測試訊息 🚀';
+    ws.send(text);
+    log('send', '→ 發送純文字: ' + text);
+  }
+</script>
+
+</body>
+</html>
