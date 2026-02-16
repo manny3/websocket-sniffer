@@ -1,54 +1,9 @@
-// background.js - Service Worker，負責注入腳本與轉發訊息
+// background.js - Service Worker，負責轉發訊息到 DevTools 面板和 Popup
 
 const devtoolsConnections = {};
 const popupConnections = {};
 const messageStore = {};
-const injectedTabs = new Set(); // 記錄已注入的 tab
 const MAX_STORE = 500;
-
-// 程式化注入腳本到指定 tab
-async function injectScripts(tabId) {
-  if (injectedTabs.has(tabId)) return;
-
-  try {
-    // 先注入 inject.js 到 MAIN world（攔截 WebSocket）
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId, allFrames: true },
-      files: ['inject.js'],
-      world: 'MAIN',
-      injectImmediately: true
-    });
-
-    // 再注入 content.js 到 ISOLATED world（橋接通訊）
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId, allFrames: true },
-      files: ['content.js'],
-      injectImmediately: true
-    });
-
-    injectedTabs.add(tabId);
-
-    // 更新 icon 狀態表示已啟用
-    chrome.action.setBadgeText({ text: 'ON', tabId: tabId });
-    chrome.action.setBadgeBackgroundColor({ color: '#4caf50', tabId: tabId });
-  } catch (e) {
-    // 無法注入（例如 chrome:// 頁面），忽略
-    console.log('Cannot inject into tab', tabId, e.message);
-  }
-}
-
-// 當 tab 關閉或導航時，清理狀態
-chrome.tabs.onRemoved.addListener(function (tabId) {
-  injectedTabs.delete(tabId);
-  delete messageStore[tabId];
-});
-
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
-  if (changeInfo.status === 'loading') {
-    injectedTabs.delete(tabId);
-    delete messageStore[tabId];
-  }
-});
 
 // 連線處理
 chrome.runtime.onConnect.addListener(function (port) {
@@ -57,9 +12,6 @@ chrome.runtime.onConnect.addListener(function (port) {
       if (message.name === 'init') {
         const tabId = message.tabId;
         devtoolsConnections[tabId] = port;
-
-        // DevTools 開啟時自動注入
-        injectScripts(tabId);
 
         if (messageStore[tabId]) {
           messageStore[tabId].forEach(function (msg) {
@@ -86,9 +38,6 @@ chrome.runtime.onConnect.addListener(function (port) {
       if (message.name === 'init') {
         const tabId = message.tabId;
         popupConnections[tabId] = port;
-
-        // Popup 開啟時自動注入（activeTab 授權）
-        injectScripts(tabId);
 
         if (messageStore[tabId]) {
           messageStore[tabId].forEach(function (msg) {
@@ -133,4 +82,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (tabId in popupConnections) {
     popupConnections[tabId].postMessage(data);
   }
+});
+
+// 清理已關閉的 tab
+chrome.tabs.onRemoved.addListener(function (tabId) {
+  delete messageStore[tabId];
 });
