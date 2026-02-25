@@ -71,16 +71,24 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   messageStore[tabId].push(data);
   if (messageStore[tabId].length > MAX_STORE) messageStore[tabId].shift();
 
-  // 更新 badge 計數
+  // 更新 badge 計數（tab 可能已關閉，需捕捉錯誤）
   const count = messageStore[tabId].length;
-  chrome.action.setBadgeText({ text: count > 99 ? '99+' : String(count), tabId: tabId });
-  chrome.action.setBadgeBackgroundColor({ color: '#4caf50', tabId: tabId });
+  chrome.action.setBadgeText({ text: count > 99 ? '99+' : String(count), tabId: tabId }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ color: '#4caf50', tabId: tabId }).catch(() => {});
 
   if (tabId in devtoolsConnections) {
-    devtoolsConnections[tabId].postMessage(data);
+    try {
+      devtoolsConnections[tabId].postMessage(data);
+    } catch {
+      delete devtoolsConnections[tabId];
+    }
   }
   if (tabId in popupConnections) {
-    popupConnections[tabId].postMessage(data);
+    try {
+      popupConnections[tabId].postMessage(data);
+    } catch {
+      delete popupConnections[tabId];
+    }
   }
 });
 
